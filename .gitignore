@@ -1,0 +1,23 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# Package file
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# OS file
+.DS_Store
+
+# Eclim Files
+
+# Folders
+bin/
+jarFolder/
+.settings/
