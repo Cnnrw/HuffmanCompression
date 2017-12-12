@@ -69,10 +69,8 @@ public class MakeCode {
                                                     throws IOException {
         return Files.lines(Paths.get(fileName))
             .flatMap(line -> 
-                    IntStream.range(0, line.length()).mapToObj(line::charAt))
-            // .filter(Character::isLetter)
-            // .map(Character::toLowerCase)
-            .collect(Collectors.toMap(s -> s, s -> 1, Integer::sum));
+                    IntStream.range(0, line.length())
+            .collect(Collectors.toMap(s -> s, s -> 1, Integer::sum)));
     }
 
     /**

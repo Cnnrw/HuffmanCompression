@@ -4,7 +4,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Scanner;
 
 /**
  * Binary tree following the Huffman algorithm.
@@ -13,7 +12,7 @@ import java.util.Scanner;
  * @version     0.1
  * @since       2017-12-06 15:25
  */
-public class HuffmanTree {
+public class HuffmanTree2 {
     private HuffmanNode root;
 
     /**
@@ -26,7 +25,7 @@ public class HuffmanTree {
      * @param   int[]   Array of character frequencies.
      * @throws  IOException
      */
-    public HuffmanTree(int[] count) throws IOException {
+    public HuffmanTree2(int[] count) throws IOException {
         Queue<HuffmanNode> leaves = new PriorityQueue<>();
 
         // Iterate over array, adding HuffmanNodes to leaves
@@ -41,37 +40,20 @@ public class HuffmanTree {
         // end of the file.    charCode: 256   freq: 1 
         leaves.add(new HuffmanNode(256, 1));
         root = constructTree(leaves);
-
-        // Give each leaf node knowledge of its path.
-        huffmanMap(root, "");
-
-        // root.printTree();
+        root.printTree();
     }
 
     /**
-     * Constructor for the HuffmanTree class. Takes a Scanner that
-     * is focused on the code file for a huffmanTree and creates a 
-     * tree from the information in the file.
-     *
-     * @param   Scanner     Scanner pointed at the code file of a huffmanTree
-     * @throws IOException
+     * Constructs a HuffmanTree from the given input stream. Assumes 
+     * that the standard bit representation has been used for the tree.
+     * 
+     * @param   BitInputStream  input stream.
      */
-    public HuffmanTree(Scanner scan) throws IOException {
-        String[] huffmanPath = new String[257];    // Create string array
-        root = new HuffmanNode(0, 0);
-
-        /* Read in the code file. The code file has a cadence in the
-         * form of:     Character code  
-         *              Character tree position
-         * The character code will be used as the index for the 
-         * tree position in the String array.
-         */
-        while (scan.hasNextLine()) {
-            int n = Integer.parseInt(scan.nextLine());
-            huffmanPath[n] = scan.nextLine();
-            reConstructTree(huffmanPath[n].toCharArray(), n);
-        }
+    public HuffmanTree2(BitInputStream input) throws IOException {
+        root = reconstructTree(input);
+        root.printTree();
     }
+
     /**
      * Constructs a huffman tree using the naturally ordered queue of 
      * leaves. constructTree takes the front two leaves of the queue
@@ -98,57 +80,87 @@ public class HuffmanTree {
     }
 
     /**
-     * Reconstructs a HuffmanTree given the leaf paths and character
-     * codes.
+     * Reconstructs the tree given the preorder map. Reads a bit from
+     * the input stream. If the bit returned is 0, construct a branch node 
+     * and recursively build their paths. When the bit returned is 1 create 
+     * a leaf node containing the character code and exit the stack.
      *
-     * @param   char[]      the path through the tree for each character
-     * @param   int         Character code to be placed at the end of the
-     *                      path.
-     * @throws  IOException
+     * @param   BitInputStream  stream containing a huffman tree map.
+     * @return  HuffmanNode     Node being constructed
      */
-    private void reConstructTree(char[] path, int charCode) throws IOException {
-        HuffmanNode current = root;
-        // Follow path through the tree
-        for (char c : path) {
-            // next step to take 
-            int step = Character.getNumericValue(c);
-            if (step == 0) {
-                if (current.left == null) {
-                    HuffmanNode insert = new HuffmanNode(0, 0);
-                    current.left = insert;
-                }
-                current = current.left;
-            } else {
-                if (current.right == null) {
-                    HuffmanNode insert = new HuffmanNode(0, 0);
-                    current.right = insert;
-                }
-                current = current.right;
-            }
+    private HuffmanNode reconstructTree(BitInputStream input) {
+        int bit = input.readBit();
+
+        if (bit == 1) {
+            // We've hit a leaf, return a childless node
+            return new HuffmanNode(read9(input), 0);
+        } else {
+            // We've hit a branch, recursively build
+            // left and right path. Stack exits when
+            // a leaf node is returned.
+            HuffmanNode left = reconstructTree(input);
+            HuffmanNode right = reconstructTree(input);
+            return new HuffmanNode(0,0, left, right);
         }
-        current.charCode = charCode;
     }
 
     /**
-     * Writes the current huffmanTree to the provided output stream,
-     * in the format: <charCode>
-     *                <map position>
+     * Writes the current huffmanTree to the provided output stream.
      *  
-     * @param   PrintStream     stream to write the huffman code to.
+     * @param   BitOutputStream     stream to write the huffman code to.
      * @throws  IOException
      */
-    public void write(PrintStream output) throws IOException {
-        write(output, root);
+    public void writeHeader(BitOutputStream output) throws IOException {
+        writeHeader(output, root);
     }
 
-    private void write(PrintStream output, HuffmanNode root) {
+    /**
+     * Writes to the bit stream a representation of the tree that can
+     * be used to reconstruct it later. Uses preorder traversal. Nodes 
+     * are assigned a 0 if they have children (branch nodes) or 1 if
+     * they represent a character (leaf nodes).
+     *
+     * @param   BitOutputStream     output file being written.
+     * @param   HuffmanNode         current node being examined
+     */
+    private void writeHeader(BitOutputStream output, HuffmanNode root) {
         if (!root.isLeaf()) {
-            write(output, root.left);
-            write(output, root.right);
+            output.writeBit(0);
+            writeHeader(output, root.left);
+            writeHeader(output, root.right);
         } else {
-            output.println(root.charCode);
-            output.println(root.bitPosition);
+            output.writeBit(1);
+            write9(output, root.charCode);
         }
+    }
+
+    /**
+     * Writes a 9-bit representation of n to the given output stream.
+     *
+     * @param   BitOutputStream  Stream to write the 9-bit integer to
+     * @param               int  number to be encoded
+     */
+    private void write9(BitOutputStream output, int n) {
+        for (int i = 0; i < 9; i++) {
+            output.writeBit(n % 2);
+            n /= 2;
+        }
+    }
+
+    /**
+     * Reads 9 bits to reconstruct the original integer from the 
+     * input stream.
+     *
+     * @param   BitInputStream  input stream being read from
+     */
+    private int read9(BitInputStream input) {
+        int multiplier = 1;
+        int sum = 0;
+        for (int i = 0; i < 9; i++) {
+            sum += multiplier * input.readBit();
+            multiplier *= 2;
+        }
+        return sum;
     }
 
     /**
@@ -186,6 +198,18 @@ public class HuffmanTree {
     }
 
     /**
+     * Assigns codes for each character in the tree. The ASCII
+     * character code will represent the index of the element in
+     * the array containing the characters path code in the tree.
+     *
+     * @param   String[]    array of size 257 representing character
+     *                      codes.
+     */
+    public void assign(String[] codes) {
+        assign(root, "", codes);
+    }
+
+    /**
      * Creates the Integer that represents a characters
      * position in the tree.
      *
@@ -194,12 +218,12 @@ public class HuffmanTree {
      *                      call goes left in the tree and 1 if the call goes
      *                      to the right.
      */
-    private void huffmanMap(HuffmanNode node, String s) {
+    private void assign(HuffmanNode node, String s, String[] codes) {
         if (!node.isLeaf()) {
-            huffmanMap(node.left, s + '0');
-            huffmanMap(node.right, s + '1');
+            assign(node.left, s + '0', codes);
+            assign(node.right, s + '1', codes);
         } else {
-            node.bitPosition = s;
+            codes[node.charCode] = s;
         }
     }
 
@@ -210,7 +234,6 @@ public class HuffmanTree {
     private static class HuffmanNode implements Comparable<HuffmanNode> {
         int charCode;
         int freq;
-        String bitPosition;
         HuffmanNode left, right;
 
         /**
@@ -286,7 +309,7 @@ public class HuffmanTree {
             if (charCode == 256) {
                 out.write("<End Of File>");
             } else {
-                out.write(charCode + " : " + freq);
+                out.write(charCode);
             }
             out.write('\n');
         }

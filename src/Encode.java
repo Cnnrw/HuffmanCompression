@@ -38,21 +38,29 @@ public class Encode {
 			BitOutputStream output = new BitOutputStream(outputFile);
 			for (;;) {
 				int n = input.read();
-				if (n == -1)
+				if (n == -1) {
 					break;
+                }
 				writeString(codes[n], output);
 			}
+
+            System.out.println("\nUncompressed File size: "
+                    + input.getChannel().size() + " bytes");
+
 			input.close();
 			writeString(codes[CHAR_MAX], output);
-            System.out.println(".short successfully written");
+            System.out.println("Compressed File size: " 
+                    + output.getSize() + " bytes");
 			output.close();
 		} catch (IOException e) {
-			System.out.println(e);
+            e.printStackTrace();
 		}
 	}
 
 	public static void writeString(String s, BitOutputStream output) {
-		for (int i = 0; i < s.length(); i++)
+		for (int i = 0; i < s.length(); i++) {
 			output.writeBit(s.charAt(i) - '0');
-	}
+        }
+    }
 }
+

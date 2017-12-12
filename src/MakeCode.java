@@ -18,7 +18,7 @@ public class MakeCode {
 		// get file names from user
 		Scanner console = new Scanner(System.in);
 		System.out.print("input file name? ");
-		String inFile = "src/" + console.nextLine() + ".text";
+		String inFile = console.nextLine();
 		System.out.print("code file name? ");
 		String codeFile = console.nextLine();
 		console.close();
@@ -26,6 +26,8 @@ public class MakeCode {
 		// open input file and count character frequencies
 		try {
 			FileInputStream input = new FileInputStream(inFile);
+            System.out.println("\nFile size before compression: " 
+                    + input.getChannel().size() + " bytes");
 			int[] count = new int[CHAR_MAX];
 			for (;;) {
 				int n = input.read();
